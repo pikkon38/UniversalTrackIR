@@ -4,13 +4,13 @@ Turns a Tobii Eye Tracker 5 into head tracking for any game. Your head does the 
 
 Games with head tracking support (TrackIR or FreeTrack) see it as a TrackIR. For games without that support, it can drive the mouse or a vJoy virtual joystick instead.
 
-## Download
+## Install
 
-Grab **UniversalTrackIR.exe** from the [latest release](https://github.com/pikkon38/UniversalTrackIR/releases/latest). It's a single self-contained exe. No installer and no .NET runtime needed.
+Download **UniversalTrackIR-Setup.exe** from the [latest release](https://github.com/pikkon38/UniversalTrackIR/releases/latest) and run it. It installs for your Windows user only (no admin prompt), adds a Start menu shortcut and, if you want one, a desktop shortcut. Remove it any time from Settings > Apps.
 
-Put it somewhere you can write to, like `%LOCALAPPDATA%\UniversalTrackIR\app`, and run it.
+**Updates:** the app checks GitHub on startup. When a new version exists, an **Install vX** button appears at the top. Click it: the app downloads the new installer, runs it silently, and comes back up on the new version. Settings and profiles carry over.
 
-**Updates:** the app checks GitHub on startup. When a new release exists, an **Install** button appears at the top. Click it and the app downloads the new exe, swaps it in, and restarts. Settings carry over.
+Prefer no installer? The release also has a portable **UniversalTrackIR.exe**. Put it in any folder you can write to; its Install button swaps the exe in place.
 
 ## Requirements
 
@@ -81,7 +81,7 @@ Settings and profiles live in `%APPDATA%\UniversalTrackIR\settings.json`. Neithe
 
 1. Bump `<Version>` in `UniversalTrackIR.csproj`.
 2. Commit and push to `main`. GitHub Actions compiles every push.
-3. **Actions > Build > Run workflow**, enter a tag like `v0.2.0`, and run it. Actions builds `UniversalTrackIR.exe` and attaches it to a new release. Every running copy offers the update on its next launch.
+3. **Actions > Build > Run workflow**, enter a tag like `v0.2.0`, and run it. Actions builds `UniversalTrackIR-Setup.exe` (Inno Setup, script in `installer/`) and the portable `UniversalTrackIR.exe`, and attaches both to a new release. Every running copy offers the update on its next launch.
 
 ## Credits
 

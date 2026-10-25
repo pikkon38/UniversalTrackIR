@@ -15,22 +15,32 @@ public sealed class ReleaseInfo
     public required Version Version { get; init; }
     public required string Tag { get; init; }
     public required string PageUrl { get; init; }
-    public required string ExeUrl { get; init; }
+    public string? ExeUrl { get; init; }
+    public string? SetupUrl { get; init; }
 }
 
 /// <summary>
 /// Updates from GitHub Releases.
 ///
 /// Check: reads the latest release of the repo and compares its tag (v0.3.0) to this build's version.
-/// Install: downloads UniversalTrackIR.exe next to the running exe, renames the running exe to .old
-/// (Windows allows renaming a running exe, not deleting it), moves the new one into place,
-/// and starts it. The .old file is cleaned up on the next launch.
+///
+/// Install, when this copy came from the installer: downloads UniversalTrackIR-Setup.exe and runs it
+/// silently. Setup closes this app, replaces it, keeps the Start menu entry and uninstaller current,
+/// and starts the new version.
+///
+/// Install, for a loose exe: downloads UniversalTrackIR.exe next to the running exe, renames the
+/// running exe to .old (Windows allows renaming a running exe, not deleting it), moves the new one
+/// into place, and starts it. The .old file is cleaned up on the next launch.
 /// </summary>
 public static class UpdateService
 {
     public const string Repo = "pikkon38/UniversalTrackIR";
     public const string ReleasesPage = "https://github.com/" + Repo + "/releases";
     private const string AssetName = "UniversalTrackIR.exe";
+    private const string SetupAssetName = "UniversalTrackIR-Setup.exe";
+
+    /// <summary>The installer drops this file next to the exe.</summary>
+    public static bool IsInstalled => File.Exists(Path.Combine(Path.GetDirectoryName(ExePath)!, ".installed"));
 
     private static readonly HttpClient Http = CreateClient();
 
@@ -54,16 +64,17 @@ public static class UpdateService
         version = Normalize(version);
         if (version <= CurrentVersion) return null;
 
-        string? exeUrl = null;
+        string? exeUrl = null, setupUrl = null;
         foreach (var asset in root.GetProperty("assets").EnumerateArray())
         {
-            if (string.Equals(asset.GetProperty("name").GetString(), AssetName, StringComparison.OrdinalIgnoreCase))
-            {
-                exeUrl = asset.GetProperty("browser_download_url").GetString();
-                break;
-            }
+            string? name = asset.GetProperty("name").GetString();
+            string? url = asset.GetProperty("browser_download_url").GetString();
+            if (string.Equals(name, AssetName, StringComparison.OrdinalIgnoreCase)) exeUrl = url;
+            else if (string.Equals(name, SetupAssetName, StringComparison.OrdinalIgnoreCase)) setupUrl = url;
         }
-        if (exeUrl == null) return null; // release still building, or no exe attached
+
+        // Release still building, or nothing this copy can install from.
+        if ((IsInstalled ? setupUrl ?? exeUrl : exeUrl) == null) return null;
 
         return new ReleaseInfo
         {
@@ -71,6 +82,7 @@ public static class UpdateService
             Tag = tag,
             PageUrl = root.GetProperty("html_url").GetString() ?? ReleasesPage,
             ExeUrl = exeUrl,
+            SetupUrl = setupUrl,
         };
     }
 
@@ -80,35 +92,21 @@ public static class UpdateService
     /// </summary>
     public static async Task InstallAsync(ReleaseInfo release, IProgress<double>? progress, CancellationToken ct = default)
     {
+        if (IsInstalled && release.SetupUrl != null)
+        {
+            await RunSetupAsync(release, progress, ct);
+            return;
+        }
+
+        if (release.ExeUrl == null) throw new InvalidOperationException("This release has no exe to update from.");
+
         string exe = ExePath;
         string dir = Path.GetDirectoryName(exe)!;
         string download = exe + ".download";
         string old = exe + ".old";
 
         // 1. Download next to the exe (same drive, so the swap is an atomic rename).
-        using (var response = await Http.GetAsync(release.ExeUrl, HttpCompletionOption.ResponseHeadersRead, ct))
-        {
-            response.EnsureSuccessStatusCode();
-            long? total = response.Content.Headers.ContentLength;
-            await using var src = await response.Content.ReadAsStreamAsync(ct);
-            await using var dst = new FileStream(download, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16, true);
-
-            var buffer = new byte[1 << 16];
-            long done = 0;
-            int read;
-            while ((read = await src.ReadAsync(buffer, ct)) > 0)
-            {
-                await dst.WriteAsync(buffer.AsMemory(0, read), ct);
-                done += read;
-                if (total > 0) progress?.Report((double)done / total.Value);
-            }
-        }
-
-        if (new FileInfo(download).Length < 1_000_000)
-        {
-            File.Delete(download);
-            throw new InvalidDataException("Downloaded file is too small to be the app.");
-        }
+        await DownloadAsync(release.ExeUrl, download, progress, ct);
 
         // 2. Swap. Rename the running exe out of the way, move the new one in.
         if (File.Exists(old)) TryDelete(old);
@@ -136,6 +134,46 @@ public static class UpdateService
 
         // 4. Launch the new version.
         Process.Start(new ProcessStartInfo(exe) { UseShellExecute = true, WorkingDirectory = dir });
+    }
+
+    /// <summary>Downloads the installer to %TEMP% and starts it silently. It closes this app and relaunches the new one.</summary>
+    private static async Task RunSetupAsync(ReleaseInfo release, IProgress<double>? progress, CancellationToken ct)
+    {
+        string setup = Path.Combine(Path.GetTempPath(), $"UniversalTrackIR-Setup-{release.Version}.exe");
+        await DownloadAsync(release.SetupUrl!, setup, progress, ct);
+
+        Process.Start(new ProcessStartInfo(setup)
+        {
+            Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS",
+            UseShellExecute = true,
+        });
+    }
+
+    private static async Task DownloadAsync(string url, string path, IProgress<double>? progress, CancellationToken ct)
+    {
+        using (var response = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct))
+        {
+            response.EnsureSuccessStatusCode();
+            long? total = response.Content.Headers.ContentLength;
+            await using var src = await response.Content.ReadAsStreamAsync(ct);
+            await using var dst = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16, true);
+
+            var buffer = new byte[1 << 16];
+            long done = 0;
+            int read;
+            while ((read = await src.ReadAsync(buffer, ct)) > 0)
+            {
+                await dst.WriteAsync(buffer.AsMemory(0, read), ct);
+                done += read;
+                if (total > 0) progress?.Report((double)done / total.Value);
+            }
+        }
+
+        if (new FileInfo(path).Length < 1_000_000)
+        {
+            File.Delete(path);
+            throw new InvalidDataException("Downloaded file is too small to be the app.");
+        }
     }
 
     /// <summary>Removes leftovers from a previous update. Call at startup.</summary>
