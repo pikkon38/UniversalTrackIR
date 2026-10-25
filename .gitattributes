@@ -8,3 +8,4 @@
 *.dll binary
 *.exe binary
 *.csv text eol=lf
+*.iss text eol=crlf

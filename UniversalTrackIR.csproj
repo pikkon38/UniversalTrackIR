@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+    <RootNamespace>UniversalTrackIR</RootNamespace>
+    <AssemblyName>UniversalTrackIR</AssemblyName>
+    <!-- WPF0001: Fluent ThemeMode is marked experimental in some SDK versions. -->
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationIcon>Assets\UniversalTrackIR.ico</ApplicationIcon>
+
+    <!-- Base version for local builds. GitHub release builds override it from the tag (v0.2.0 -> 0.2.0).
+         Bump this when you tag a release so local builds match. -->
+    <Version>0.1.0</Version>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <InformationalVersion>$(Version) build $([System.DateTime]::Now.ToString("yyyy-MM-dd HH:mm"))</InformationalVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\UniversalTrackIR.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Native pieces ride inside the exe and are unpacked to %LOCALAPPDATA%\UniversalTrackIR\clients on start.
+         Games load the TrackIR/FreeTrack client DLLs from that folder, so they must exist as real files. -->
+    <EmbeddedResource Include="Native\*.dll;Native\*.exe;Native\games.csv">
+      <LogicalName>Native.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,98 @@
+name: Build
+
+# Every push and pull request: compile and upload the exe as a workflow artifact.
+# Publish a GitHub Release (or push a tag like v0.2.0): build with that version and
+# attach UniversalTrackIR-Setup.exe and UniversalTrackIR.exe to the release. The app's built-in updater
+# reads the latest release: installed copies update through the setup, loose copies swap the exe.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Create a release with this tag, e.g. v0.2.0 (leave empty to just build)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Work out version
+        id: ver
+        shell: pwsh
+        run: |
+          $tag = ''
+          if ($env:GITHUB_EVENT_NAME -eq 'release') { $tag = '${{ github.event.release.tag_name }}' }
+          elseif ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') { $tag = '${{ github.event.inputs.release_tag }}' }
+          elseif ($env:GITHUB_REF_TYPE -eq 'tag') { $tag = $env:GITHUB_REF_NAME }
+
+          if ($tag) {
+            $v = $tag.TrimStart('v', 'V')
+            "tag=$tag" >> $env:GITHUB_OUTPUT
+            "args=-p:Version=$v" >> $env:GITHUB_OUTPUT
+          } else {
+            $v = ([xml](Get-Content UniversalTrackIR.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+            "tag=" >> $env:GITHUB_OUTPUT
+            "args=" >> $env:GITHUB_OUTPUT
+          }
+          "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Publish single-file exe
+        shell: pwsh
+        run: >
+          dotnet publish UniversalTrackIR.csproj -c Release -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:DebugType=none
+          ${{ steps.ver.outputs.args }}
+          -o out
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress | Out-Host
+          }
+          & $iscc "/DAppVersion=${{ steps.ver.outputs.version }}" installer/UniversalTrackIR.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: UniversalTrackIR-${{ github.sha }}
+          path: |
+            out/UniversalTrackIR-Setup.exe
+            out/UniversalTrackIR.exe
+
+      - name: Attach exe to release
+        if: steps.ver.outputs.tag != ''
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ steps.ver.outputs.tag }}'
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag out/UniversalTrackIR-Setup.exe out/UniversalTrackIR.exe --clobber
+          } else {
+            gh release create $tag out/UniversalTrackIR-Setup.exe out/UniversalTrackIR.exe --target $env:GITHUB_SHA --title "Universal TrackIR $tag" --generate-notes
+          }
