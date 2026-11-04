@@ -155,6 +155,8 @@ public sealed class PoseProcessor
                 _hasCenter = true;
                 _recenterRequested = false;
                 foreach (var f in _head) f.Reset();
+                _gazeX.Reset();
+                _gazeY.Reset();
             }
 
             for (int i = 0; i < 6; i++)

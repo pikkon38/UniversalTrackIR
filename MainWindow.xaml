@@ -470,37 +470,59 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Hotkeys -->
-                <Border Grid.Row="4" Grid.Column="4" Style="{StaticResource Card}">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource CardTitle}" Text="Hotkeys" Margin="0,0,0,4" />
-                        <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,12"
-                                   Text="Work while the game has focus. Click one, then press the combo. Backspace clears it." />
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Text="Recenter" VerticalAlignment="Center" />
-                            <Button Grid.Row="0" Grid.Column="1" Style="{StaticResource KeyButton}" Margin="0,0,0,6"
-                                    Content="{Binding RecenterKeyText}" Command="{Binding CaptureHotkeyCommand}" CommandParameter="Recenter" />
-                            <TextBlock Grid.Row="1" Text="Pause / resume" VerticalAlignment="Center" />
-                            <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource KeyButton}" Margin="0,0,0,6"
-                                    Content="{Binding PauseKeyText}" Command="{Binding CaptureHotkeyCommand}" CommandParameter="Pause" />
-                            <TextBlock Grid.Row="2" Text="Eyes on / off" VerticalAlignment="Center" />
-                            <Button Grid.Row="2" Grid.Column="1" Style="{StaticResource KeyButton}"
-                                    Content="{Binding EyesKeyText}" Command="{Binding CaptureHotkeyCommand}" CommandParameter="ToggleEyes" />
-                            <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Margin="0,8,0,0" Foreground="{StaticResource WarnBrush}"
-                                       TextWrapping="Wrap" Text="{Binding HotkeyWarning}" />
-                        </Grid>
-                    </StackPanel>
-                </Border>
+                <StackPanel Grid.Row="4" Grid.Column="4">
+                    <!-- Where the Tobii sits -->
+                    <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Tracker placement" Margin="0,0,0,4" />
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,10"
+                                       Text="Wheel or yoke in the way? Put the Tobii on top of the monitor and pick where it is. No monitor size needed: Tobii Experience already knows it." />
+                            <RadioButton GroupName="Mount" Content="Below the monitor" IsChecked="{Binding MountBelow}" Margin="0,0,0,6" />
+                            <RadioButton GroupName="Mount" Content="Above the monitor, upside down (recommended)" IsChecked="{Binding MountAboveFlipped}" Margin="0,0,0,6" />
+                            <RadioButton GroupName="Mount" Content="Above the monitor, right side up" IsChecked="{Binding MountAboveUpright}" />
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,10,0,12" Text="{Binding MountHint}" />
+
+                            <TextBlock Style="{StaticResource Caption}" Text="GAZE UP / DOWN NUDGE" />
+                            <DockPanel ToolTip="If the green dot under Eye tracking sits a little above or below where you look, slide it back. Positive moves it up.">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource Value}" Text="{Binding GazeOffsetY, StringFormat='{}{0:+0;-0;0}%'}" />
+                                <Slider Minimum="-25" Maximum="25" SmallChange="1" LargeChange="5" TickFrequency="1" IsSnapToTickEnabled="True"
+                                        Value="{Binding GazeOffsetY}" />
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Hotkeys -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource CardTitle}" Text="Hotkeys" Margin="0,0,0,4" />
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,0,0,12"
+                                       Text="Work while the game has focus. Click one, then press the combo. Backspace clears it." />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="Recenter" VerticalAlignment="Center" />
+                                <Button Grid.Row="0" Grid.Column="1" Style="{StaticResource KeyButton}" Margin="0,0,0,6"
+                                        Content="{Binding RecenterKeyText}" Command="{Binding CaptureHotkeyCommand}" CommandParameter="Recenter" />
+                                <TextBlock Grid.Row="1" Text="Pause / resume" VerticalAlignment="Center" />
+                                <Button Grid.Row="1" Grid.Column="1" Style="{StaticResource KeyButton}" Margin="0,0,0,6"
+                                        Content="{Binding PauseKeyText}" Command="{Binding CaptureHotkeyCommand}" CommandParameter="Pause" />
+                                <TextBlock Grid.Row="2" Text="Eyes on / off" VerticalAlignment="Center" />
+                                <Button Grid.Row="2" Grid.Column="1" Style="{StaticResource KeyButton}"
+                                        Content="{Binding EyesKeyText}" Command="{Binding CaptureHotkeyCommand}" CommandParameter="ToggleEyes" />
+                                <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Margin="0,8,0,0" Foreground="{StaticResource WarnBrush}"
+                                           TextWrapping="Wrap" Text="{Binding HotkeyWarning}" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
             </Grid>
         </ScrollViewer>
     </Grid>
