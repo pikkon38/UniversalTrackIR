@@ -41,12 +41,14 @@ public sealed class TrackingEngine : IDisposable
 
     private volatile TrackingProfile _profile;
     private volatile OutputSettings _outputs;
+    private volatile TrackerSettings _tracker;
     private volatile EngineSnapshot _snapshot = new();
 
-    public TrackingEngine(TrackingProfile profile, OutputSettings outputs)
+    public TrackingEngine(TrackingProfile profile, OutputSettings outputs, TrackerSettings tracker)
     {
         _profile = profile;
         _outputs = outputs;
+        _tracker = tracker;
     }
 
     public TrackingProfile Profile
@@ -59,6 +61,12 @@ public sealed class TrackingEngine : IDisposable
     {
         get => _outputs;
         set => _outputs = value;
+    }
+
+    public TrackerSettings Tracker
+    {
+        get => _tracker;
+        set => _tracker = value;
     }
 
     public bool IsRunning => _thread != null;
@@ -133,6 +141,7 @@ public sealed class TrackingEngine : IDisposable
         double rateStart = last;
         double rate = 0;
         bool wasConnected = false;
+        var lastMount = _tracker.Mount;
 
         while (!_stop)
         {
@@ -142,6 +151,7 @@ public sealed class TrackingEngine : IDisposable
 
             var profile = _profile;
             var outputs = _outputs;
+            var tracker = _tracker;
 
             if (!_tobii.IsConnected && now >= nextConnect)
             {
@@ -154,8 +164,16 @@ public sealed class TrackingEngine : IDisposable
 
             if (Interlocked.Exchange(ref _recenter, 0) == 1) _processor.RequestRecenter();
 
+            // Moving the tracker flips the axes, so the old center means nothing any more.
+            if (tracker.Mount != lastMount)
+            {
+                lastMount = tracker.Mount;
+                _processor.RequestRecenter();
+            }
+
             var head = connected ? _tobii.Head : default;
             var gaze = connected ? _tobii.Gaze : default;
+            MountCorrection.Apply(ref head, ref gaze, tracker);
             var pose = _processor.Process(head, gaze, profile, _paused, _eyesOn, dt);
 
             // Outputs

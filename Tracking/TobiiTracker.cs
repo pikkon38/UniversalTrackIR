@@ -28,7 +28,10 @@ public struct GazeSample
 {
     public bool Valid;
 
-    /// <summary>-1 (left/bottom) to +1 (right/top). 0,0 is the middle of the screen the tracker is set up on.</summary>
+    /// <summary>
+    /// -1 (left/bottom) to +1 (right/top). 0,0 is the middle of the screen the tracker is set up on.
+    /// Straight from the tracker this assumes it sits below the screen; <see cref="MountCorrection"/> fixes other spots.
+    /// </summary>
     public double X, Y;
 
     public long TimestampUs;
@@ -247,8 +250,10 @@ public sealed unsafe class TobiiTracker : IDisposable
         self._gaze = new GazeSample
         {
             Valid = true,
-            X = Math.Clamp(gaze->X * 2.0 - 1.0, -1.5, 1.5),
-            Y = Math.Clamp(1.0 - gaze->Y * 2.0, -1.5, 1.5),
+            // Not clamped here: with the tracker above the monitor the real screen can read as off-screen
+            // until MountCorrection moves it back.
+            X = gaze->X * 2.0 - 1.0,
+            Y = 1.0 - gaze->Y * 2.0,
             TimestampUs = gaze->TimestampUs,
         };
     }

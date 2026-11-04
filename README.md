@@ -40,6 +40,15 @@ You can only turn your head so far and still see the screen, so turning is ampli
 
 **Profiles:** tune one per game. **Duplicate** copies the current profile, **Rename** names it after the game, and switching the dropdown applies it immediately.
 
+## Tracker on top of the monitor
+
+A steering wheel or yoke can block a Tobii on the bottom edge. Move it to the top and tell the app under **Tracker placement**:
+
+- **Above the monitor, upside down (recommended).** Stick the magnetic mount to the top edge and hang the tracker upside down, lens facing you, so it looks down at your face. Leave the display setup in Tobii Experience alone and run Tobii's calibration once. Tobii still thinks it's on the bottom edge, and that setup turned upside down lines up exactly with your real screen, so the app just flips head and gaze back. No monitor size needed.
+- **Above the monitor, right side up.** Head tracking works (recenter once). The real screen is one screen height below where Tobii thinks it is, and the app shifts gaze back by that, but the tracker sees your eyes from above and often loses them. Use this only if upside down doesn't work for you.
+
+If the green gaze dot sits a bit high or low, use the **Gaze up / down nudge** slider. Changing the placement recenters automatically.
+
 ## Outputs
 
 | Output | Use it for | How |

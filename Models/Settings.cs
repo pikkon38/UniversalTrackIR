@@ -124,6 +124,28 @@ public sealed class OutputSettings
     public int VJoyDevice { get; set; } = 1;
 }
 
+/// <summary>Where the Tobii sits. Tobii Experience always assumes the bottom edge, so other spots are corrected here.</summary>
+public enum TrackerMount
+{
+    /// <summary>On the bottom edge of the monitor, as Tobii intends.</summary>
+    BelowMonitor,
+
+    /// <summary>On the top edge, turned upside down so the camera looks down at you. Best spot behind a wheel or yoke.</summary>
+    AboveMonitorFlipped,
+
+    /// <summary>On the top edge, right side up and tilted down. Head works; eyes are hit and miss.</summary>
+    AboveMonitorUpright,
+}
+
+/// <summary>Tracker hardware setup. Global, not per profile: it's about your desk, not the game.</summary>
+public sealed class TrackerSettings
+{
+    public TrackerMount Mount { get; set; } = TrackerMount.BelowMonitor;
+
+    /// <summary>Moves the gaze point up (+) or down (-), as a percentage of the screen height. Fixes a dot that sits a bit high or low.</summary>
+    public double GazeOffsetYPercent { get; set; }
+}
+
 public sealed class HotkeySettings
 {
     public string Recenter { get; set; } = "Ctrl+Shift+F12";
@@ -137,6 +159,7 @@ public sealed class AppSettings
     public string ActiveProfile { get; set; } = DefaultProfileName;
     public Dictionary<string, TrackingProfile> Profiles { get; set; } = new();
     public OutputSettings Outputs { get; set; } = new();
+    public TrackerSettings Tracker { get; set; } = new();
     public HotkeySettings Hotkeys { get; set; } = new();
 
     public const string DefaultProfileName = "Default";

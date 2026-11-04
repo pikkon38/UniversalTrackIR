@@ -76,6 +76,8 @@ public sealed class SettingsStore
         settings.Profiles ??= new();
         settings.Outputs ??= new();
         settings.Hotkeys ??= new();
+        settings.Tracker ??= new();
+        if (!Enum.IsDefined(settings.Tracker.Mount)) settings.Tracker.Mount = TrackerMount.BelowMonitor;
         if (settings.Profiles.Count == 0) settings.Profiles[AppSettings.DefaultProfileName] = new TrackingProfile();
         foreach (var p in settings.Profiles.Values) p.Repair();
         if (!settings.Profiles.ContainsKey(settings.ActiveProfile)) settings.ActiveProfile = settings.Profiles.Keys.First();

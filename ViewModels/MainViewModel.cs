@@ -34,7 +34,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         string? nativeProblem = NativeFiles.Extract();
         if (nativeProblem != null) Warning = $"Couldn't unpack game client files: {nativeProblem}";
 
-        _engine = new TrackingEngine(_profile, _settings.Outputs);
+        _engine = new TrackingEngine(_profile, _settings.Outputs, _settings.Tracker);
 
         foreach (var axis in new[] { Axis.Yaw, Axis.Pitch, Axis.Roll })
             RotationAxes.Add(new AxisViewModel(axis, _profile.Axes[axis], ScheduleSave));
@@ -329,6 +329,62 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         foreach (var p in ProcessService.ListCandidates()) Processes.Add(p);
         if (!string.IsNullOrEmpty(current) && !Processes.Contains(current, StringComparer.OrdinalIgnoreCase)) Processes.Insert(0, current);
         OnPropertyChanged(nameof(MouseProcess)); // re-push text: the editable ComboBox blanks it when the list is cleared
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Tracker placement
+
+    private TrackerSettings T => _settings.Tracker;
+
+    public bool MountBelow
+    {
+        get => T.Mount == TrackerMount.BelowMonitor;
+        set { if (value) SetMount(TrackerMount.BelowMonitor); }
+    }
+
+    public bool MountAboveFlipped
+    {
+        get => T.Mount == TrackerMount.AboveMonitorFlipped;
+        set { if (value) SetMount(TrackerMount.AboveMonitorFlipped); }
+    }
+
+    public bool MountAboveUpright
+    {
+        get => T.Mount == TrackerMount.AboveMonitorUpright;
+        set { if (value) SetMount(TrackerMount.AboveMonitorUpright); }
+    }
+
+    public string MountHint => T.Mount switch
+    {
+        TrackerMount.AboveMonitorFlipped =>
+            "Stick the magnetic mount to the top edge and hang the tracker upside down, lens facing you. Keep the display setup in Tobii Experience as it is, then run Tobii's calibration once. Head and eyes are flipped back here, so nothing else changes.",
+        TrackerMount.AboveMonitorUpright =>
+            "Right side up on the top edge, tilted down at your face. Head tracking works, but the tracker sees your eyes from above and gaze is often lost. Try upside down first.",
+        _ => "Bottom edge of the monitor, the way Tobii intends. Best for eye tracking when nothing is in the way.",
+    };
+
+    private void SetMount(TrackerMount mount)
+    {
+        if (T.Mount == mount) return;
+        T.Mount = mount; // the engine sees this next frame and recenters
+        OnPropertyChanged(nameof(MountBelow));
+        OnPropertyChanged(nameof(MountAboveFlipped));
+        OnPropertyChanged(nameof(MountAboveUpright));
+        OnPropertyChanged(nameof(MountHint));
+        ScheduleSave();
+    }
+
+    public double GazeOffsetY
+    {
+        get => T.GazeOffsetYPercent;
+        set
+        {
+            value = Math.Clamp(Math.Round(value), -25, 25);
+            if (T.GazeOffsetYPercent == value) return;
+            T.GazeOffsetYPercent = value;
+            OnPropertyChanged();
+            ScheduleSave();
+        }
     }
 
     // ---------------------------------------------------------------------------------------------
